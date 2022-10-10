@@ -1,0 +1,72 @@
+{
+	"deviceId" : "patnaenvtest",
+	"logicalDeviceId" : "patnaenvtest_L",
+	"type" : "Sensor",
+	"devFamily" : "Air",
+	"subType" : "ESPATNAOTDR",
+	"registerFrom" : None,
+	"registerTo" : None,
+	"timeZone" : "Asia/Kolkata",
+	"customerName" : "ADX",
+	"lotNo" : "1",
+	"serialNo" : "01",
+	"grade" : "Industrial",
+	"deployment" : "Outdoor",
+	"location" : {
+		"locId" : "123",
+		"city" : "Ernakulam",
+		"zone" : "central",
+		"landMark" : "medical college",
+		"latitude" : "10.12",
+		"longitude" : "78.09",
+		"building" : "mv",
+		"floor" : "2",
+		"slot" : "",
+		"dataPosition" : "",
+		"dataNormal" : ""
+	},
+	"description" : None,
+	"activated" : true
+}
+
+newParamList = [
+            {
+                "filteringMethod": None,
+                "filteringMethodDef": None,
+                "paramName": "latitude",
+            },
+            {
+                "filteringMethod": None,
+                "filteringMethodDef": None,
+                "paramName": "longitude",
+            },
+            {
+                "filteringMethod": None,
+                "filteringMethodDef": None,
+                "paramName": "er_init_sensor",
+                "displayName": 'Initialization Error',
+                "paramType": 'error',
+            },
+            {
+                "filteringMethod": None,
+                "filteringMethodDef": None,
+                "paramName": "er_read_sensor",
+                "displayName": 'Read Error',
+                "paramType": 'error',
+            },
+            {
+                "filteringMethod": None,
+                "filteringMethodDef": None,
+                "paramName": "er_data_range",
+                "displayName": 'Data Error',
+                "paramType": 'error',
+            },
+            {
+                "filteringMethod": None,
+                "filteringMethodDef": None,
+                "paramName": "er_system",
+                "displayName": 'System Error',
+                "paramType": 'error',
+            }
+
+        ]
