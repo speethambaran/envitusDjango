@@ -30,14 +30,13 @@ class AdministratorManager(BaseUserManager):
 class Administrator(User):
     base_role = User.Role.ADMINISTRATOR
 
-    student = AdministratorManager()
+    administrator = AdministratorManager()
 
     class Meta:
         proxy = True
 
     def welcome(self):
         return "Only for administrators"
-
 
 
 @receiver(post_save, sender=Administrator)
