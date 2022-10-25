@@ -39,6 +39,7 @@ class Administrator(User):
         return "Only for administrators"
 
 
+
 @receiver(post_save, sender=Administrator)
 def create_user_profile(sender, instance, created, **kwargs):
     if created and instance.role == "ADMINISTRATOR":
