@@ -17,13 +17,45 @@ from pymongo import ReturnDocument
 
 
 client = pymongo.MongoClient('mongodb://localhost:27017')
-dbname = client['user']
+dbname = client['djangop']
 
 PROJECT_TYPE = "AQMS"
 hubResponse = {"status": "ok", "errorCode": 0, "message": "None", "data": "None"}
 errorResponse = {"status": 'error', "errorCode": -1, "message": "failed", "data": None}
 
 NEED_AQI = True
+
+
+@csrf_exempt
+def addSensor(request):
+    if request.method == "POST":
+        sensor_data = json.loads(request.body)
+        isParamNameExists = False
+        collection = dbname['sensor_parameter']
+        if collection.find_one({"paramName": sensor_data["paramName"]}):
+            errorResponse["message"] = 'Sensor already exists'
+            return JsonResponse(errorResponse, safe=False)
+        else:
+            inserted_data = collection.insert_one(sensor_data)
+            return JsonResponse(hubResponse, safe=False)
+
+
+def getSensor(request):
+    collection = dbname['sensor_parameter']
+    sensorData = []
+    isQuery = False
+    if request.GET:
+        sensorQuery = request.GET["paramName"]
+        sensor_data = collection.find_one({"paramName": {"$regex": sensorQuery}}, {"_id": False})
+        sensorData.append(sensor_data)
+
+
+    else:
+        for x in collection.find({}, {'_id': False}):
+            sensorData.append(x)
+
+    hubResponse["data"] = sensorData
+    return JsonResponse(hubResponse, safe=False)
 
 
 def index(request):
@@ -35,17 +67,91 @@ def devices(request):
     if request.method == "POST":
         response = None
         device_data = data = json.loads(request.body)
-        if device_data != None:
-            response = registerDevice(device_data)
-            if response == "success":
+        isSubtypeExists = dbname["Sensor_Types"].find_one({"subType": device_data["subType"]})
+
+        if isSubtypeExists:
+            if device_data != None:
+                response = registerDevice(device_data)
+                if response == "success":
+                    return JsonResponse(hubResponse, safe=False)
+                else:
+                    return JsonResponse(errorResponse, safe=False)
+        else:
+            errorResponse["message"] = "Subtype not exists"
+            return JsonResponse(errorResponse, safe=False)
+
+
+@csrf_exempt
+def addDeviceFamily(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        collection = dbname['Sensor_Types']
+        isSubtypeExists = collection.find_one({'subType': data['subType']})
+        isTypeExists = collection.find_one({'Type': data['Type']})
+
+        deviceFamilyModel = {
+            "subType": None,
+            "Type": None,
+            "deviceFamily": []
+        }
+        deviceFamily = []
+        if isSubtypeExists and isTypeExists != None:
+            isSensorExists = dbname["sensor_parameter"].find_one({"paramName": data["deviceFamily"]})
+            isFamilyAlreadyAdded = collection.find_one({"deviceFamily": data["deviceFamily"]})
+
+            if isSensorExists and isFamilyAlreadyAdded == None:
+                collection.update_one({'subType': data['subType']}, {'$push': {'deviceFamily': data['deviceFamily']}})
+                collection.update_one({'Type': data['Type']}, {'$push': {'deviceFamily': data['deviceFamily']}})
+
                 return JsonResponse(hubResponse, safe=False)
-            else:
+            elif isFamilyAlreadyAdded != None:
+                errorResponse["message"] = 'Device Family already added'
                 return JsonResponse(errorResponse, safe=False)
+            else:
+                errorResponse["message"] = 'No sensor existing with this name'
+                return JsonResponse(errorResponse, safe=False)
+        else:
+            deviceFamilyModel["subType"] = data['subType']
+            deviceFamilyModel["Type"] = data['Type']
+            deviceFamilyModel["deviceFamily"].append(data['deviceFamily'])
+            collection.insert_one(deviceFamilyModel)
+            return JsonResponse(hubResponse, safe=False)
+    elif request.method == "GET":
+        i = 0
+        data = []
+        if request.GET:
+            paramNameQuery = request.GET["paramName"]
+            result = dbname["Sensor_Types"].find_one({"subType": {"$regex": paramNameQuery}}, {"_id": False})
+            data.append(result)
+        else:
+            deviceTypes = None
+            for x in dbname["Sensor_Types"].find({}, {'_id': 0}):
+                data.append(x)
+        hubResponse["data"] = data
+
+        return JsonResponse(hubResponse, safe=False)
+
+
+@csrf_exempt
+def getDeviceFamily(request):
+    data = []
+    if request.GET:
+        subTypeQuery = request.GET["subType"]
+        result = dbname["Sensor_Types"].find_one({"subType": {"$regex": subTypeQuery}}, {"_id": False})
+        data.append(result)
+    else:
+        deviceTypes = None
+        for x in dbname["Sensor_Types"].find({}, {'_id': 0}):
+            data.append(x)
+    hubResponse["data"] = data
+
+    return JsonResponse(hubResponse, safe=False)
 
 
 @csrf_exempt
 def deviceFamily(request):
-    collection = dbname['deviceFamily']
+    # collection = dbname['deviceFamily']
+    collection = dbname['sensor_parameter']
     if request.method == "POST":
         data = json.loads(request.body)
         isSubtypeExists = False
@@ -556,6 +662,7 @@ def convertPM25u3ToAqi(value):
 
 def registerDevice(deviceDetails):
     device = createDeviceInstanceFromSubType(deviceDetails["subType"])
+
     response = deviceDetails
     response["paramDefinitions"] = device
     collectionName = "devices"
@@ -603,6 +710,7 @@ def getDeviceFromId(devicId):
 
 
 def createDeviceInstanceFromSubType(subType):
+    print('Subtye:::::::::::', subType)
     result = None
     newParamList = [
         {
@@ -647,11 +755,21 @@ def createDeviceInstanceFromSubType(subType):
     ]
 
     temp = newParamList
-    specModule = sensorParameter()
-    for x in range(len(newParamList)):
-        specModule.append(newParamList[x])
 
-    return specModule
+    specModule = sensorParameter()
+    specModuleList = []
+
+    sensorTypeCollection = dbname["Sensor_Types"]
+    for x in sensorTypeCollection.find({"subType": subType}, {"deviceFamily": 1, "_id": 0}):
+        deviceFamilyList = x["deviceFamily"]
+        for families in deviceFamilyList:
+            result = dbname["sensor_parameter"].find_one({"paramName": families})
+            specModuleList.append(result)
+
+    for x in range(len(newParamList)):
+        specModuleList.append(newParamList[x])
+
+    return specModuleList
 
 
 def addDeviceParams(request):
@@ -662,10 +780,11 @@ def addDeviceParams(request):
 
 
 def sensorParameter():
-    collection = dbname['sensor_parameters']
+    collection = dbname['sensor_parameter']
     sensorParamList = []
-    for document in collection.find():
-        sensorParamList.append(document)
+
+    for x in collection.find({}, {'_id': False}):
+        sensorParamList.append(x)
     return sensorParamList
 
 
