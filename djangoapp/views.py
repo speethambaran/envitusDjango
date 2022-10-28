@@ -20,8 +20,8 @@ client = pymongo.MongoClient('mongodb://localhost:27017')
 dbname = client['djangop']
 
 PROJECT_TYPE = "AQMS"
-hubResponse = {"status": "ok", "errorCode": 0, "message": "None", "data": "None"}
-errorResponse = {"status": 'error', "errorCode": -1, "message": "failed", "data": None}
+hubResponse = {"status": "ok", "errorCode": 0, "message": "None"}
+errorResponse = {"status": 'error', "errorCode": -1, "message": "failed"}
 
 NEED_AQI = True
 
@@ -58,27 +58,17 @@ def getSensor(request):
     return JsonResponse(hubResponse, safe=False)
 
 
-def index(request):
-    return HttpResponse("<h1>Hello and welcome to my first <u>Django App</u> project!</h1>")
-
-
 @csrf_exempt
-def devices(request):
+def adddevices(request):
     if request.method == "POST":
         response = None
         device_data = data = json.loads(request.body)
-        isSubtypeExists = dbname["Sensor_Types"].find_one({"subType": device_data["subType"]})
-
-        if isSubtypeExists:
-            if device_data != None:
-                response = registerDevice(device_data)
-                if response == "success":
-                    return JsonResponse(hubResponse, safe=False)
-                else:
-                    return JsonResponse(errorResponse, safe=False)
-        else:
-            errorResponse["message"] = "Subtype not exists"
-            return JsonResponse(errorResponse, safe=False)
+        if device_data != None:
+            response = registerDevice(device_data)
+            if response == "success":
+                return JsonResponse(hubResponse, safe=False)
+            else:
+                return JsonResponse(errorResponse, safe=False)
 
 
 @csrf_exempt
@@ -92,7 +82,7 @@ def addDeviceFamily(request):
         deviceFamilyModel = {
             "subType": None,
             "Type": None,
-            "deviceFamily": []
+            "deviceFamily": [],
         }
         deviceFamily = []
         if isSubtypeExists and isTypeExists != None:
@@ -101,9 +91,7 @@ def addDeviceFamily(request):
 
             if isSensorExists and isFamilyAlreadyAdded == None:
                 collection.update_one({'subType': data['subType']}, {'$push': {'deviceFamily': data['deviceFamily']}})
-                collection.update_one({'Type': data['Type']}, {'$push': {'deviceFamily': data['deviceFamily']}})
-
-                return JsonResponse(hubResponse, safe=False)
+                return (hubResponse)
             elif isFamilyAlreadyAdded != None:
                 errorResponse["message"] = 'Device Family already added'
                 return JsonResponse(errorResponse, safe=False)
@@ -111,11 +99,16 @@ def addDeviceFamily(request):
                 errorResponse["message"] = 'No sensor existing with this name'
                 return JsonResponse(errorResponse, safe=False)
         else:
-            deviceFamilyModel["subType"] = data['subType']
-            deviceFamilyModel["Type"] = data['Type']
-            deviceFamilyModel["deviceFamily"].append(data['deviceFamily'])
-            collection.insert_one(deviceFamilyModel)
-            return JsonResponse(hubResponse, safe=False)
+            isSensorExists = dbname["sensor_parameter"].find_one({"paramName": data["deviceFamily"]})
+            if isSensorExists:
+                deviceFamilyModel["subType"] = data['subType']
+                deviceFamilyModel["Type"] = data['Type']
+                deviceFamilyModel["deviceFamily"].append(data['deviceFamily'])
+                collection.insert_one(deviceFamilyModel)
+                return JsonResponse(hubResponse, safe=False)
+            else:
+                errorResponse["message"] = 'No sensor existing with this name'
+                return JsonResponse(errorResponse, safe=False)
     elif request.method == "GET":
         i = 0
         data = []
@@ -146,54 +139,6 @@ def getDeviceFamily(request):
     hubResponse["data"] = data
 
     return JsonResponse(hubResponse, safe=False)
-
-
-@csrf_exempt
-def deviceFamily(request):
-    # collection = dbname['deviceFamily']
-    collection = dbname['sensor_parameter']
-    if request.method == "POST":
-        data = json.loads(request.body)
-        isSubtypeExists = False
-        isSubtypeExists = collection.find_one({'subType': data['subType']})
-        deviceFamilyModel = {
-            "subType": None,
-            "deviceFamily": []
-        }
-        deviceFamily = []
-        if isSubtypeExists:
-            isdeviceFamily_alreadyExists = collection.find_one(data)
-            if isdeviceFamily_alreadyExists:
-                errorResponse["message"] = 'Device family already exists with this subtype'
-                return JsonResponse(errorResponse, safe=False)
-            else:
-                collection.update_one({'subType': data['subType']}, {'$push': {'deviceFamily': data['deviceFamily']}})
-                checkSensorAlreadyExits = False
-                if dbname['sensor_parameters'].find_one(data["sensor_parameter"]):
-                    print('SENSOR ALREADY EXISTS*************')
-                else:
-                    dbname['sensor_parameters'].insert_one(data["sensor_parameter"])
-                return JsonResponse(hubResponse, safe=False)
-        else:
-            deviceFamilyModel["subType"] = data['subType']
-            deviceFamilyModel["deviceFamily"].append(data['deviceFamily'])
-            collection.insert_one(deviceFamilyModel)
-            return JsonResponse(hubResponse, safe=False)
-    elif request.method == "GET":
-        i = 0
-        data = []
-        if request.GET:
-            deviceTypes = request.GET["type"].split(',')
-            for x in range(len(deviceTypes)):
-                result = collection.find_one({'subType': deviceTypes[x]}, {'_id': 0})
-                data.append(result)
-        else:
-            deviceTypes = None
-            for x in collection.find({}, {'_id': 0}):
-                data.append(x)
-        hubResponse["data"] = data
-
-        return JsonResponse(hubResponse, safe=False)
 
 
 @csrf_exempt
@@ -662,13 +607,14 @@ def convertPM25u3ToAqi(value):
 
 def registerDevice(deviceDetails):
     device = createDeviceInstanceFromSubType(deviceDetails["subType"])
-
+    # sub =
+    isSubtypeExists = dbname["Sensor_Types"].find_one({"subType": deviceDetails["subType"]})
     response = deviceDetails
     response["paramDefinitions"] = device
     collectionName = "devices"
     collection = dbname[collectionName]
     isExists = collection.find_one({'deviceId': response["deviceId"]})
-    if isExists:
+    if isExists or isSubtypeExists == None:
         return "failed"
     else:
         collection.insert_one(response)
@@ -710,7 +656,6 @@ def getDeviceFromId(devicId):
 
 
 def createDeviceInstanceFromSubType(subType):
-    print('Subtye:::::::::::', subType)
     result = None
     newParamList = [
         {
