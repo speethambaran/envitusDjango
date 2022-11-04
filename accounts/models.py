@@ -1,3 +1,4 @@
+from ast import operator
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db.models.signals import post_save
@@ -6,12 +7,12 @@ from django.dispatch import receiver
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        SUPER_ADMIN = "SUPER_ADMIN", "Super_Admin"
+        OPERATOR = "OPERATOR", "Operator"
         ADMINISTRATOR = "ADMINISTRATOR", "Administrator"
         SUPERVISOR = "SUPERVISOR", "Supervisor"
-        OPERATOR = "OPERATOR", "Operator"
+        SUPERADMIN = "SUPERADMIN", "Superadmin"
 
-    base_role = Role.SUPER_ADMIN
+    base_role = Role.OPERATOR
 
     role = models.CharField(max_length=50, choices=Role.choices)
 
@@ -36,7 +37,7 @@ class Administrator(User):
         proxy = True
 
     def welcome(self):
-        return "Only for administrators"
+        return "Only for administrator"
 
 
 @receiver(post_save, sender=Administrator)
@@ -47,7 +48,6 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 class AdministratorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    administrator_id = models.IntegerField(null=True, blank=True)
 
 
 class SupervisorManager(BaseUserManager):
@@ -65,7 +65,11 @@ class Supervisor(User):
         proxy = True
 
     def welcome(self):
-        return "Only for supervisors"
+        return "Only for supervisor"
+
+
+class SupervisorProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
 
 
 @receiver(post_save, sender=Supervisor)
@@ -74,64 +78,31 @@ def create_user_profile(sender, instance, created, **kwargs):
         SupervisorProfile.objects.create(user=instance)
 
 
-class SupervisorProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    Supervisor_id = models.IntegerField(null=True, blank=True)
-
-
-class OperatorManager(BaseUserManager):
+class SuperadminManger(BaseUserManager):
     def get_queryset(self, *args, **kwargs):
         results = super().get_queryset(*args, **kwargs)
-        return results.filter(role=User.Role.OPERATOR)
+        return results.filter(role=User.Role.SUPERADMIN)
 
 
-class Operator(User):
-    base_role = User.Role.OPERATOR
+class Superadmin(User):
+    base_role = User.Role.SUPERADMIN
 
-    operator = OperatorManager()
+    Superadmin = SuperadminManger()
 
     class Meta:
         proxy = True
 
     def welcome(self):
-        return "Only for operators"
+        return "Only for operator"
 
 
-@receiver(post_save, sender=Operator)
+@receiver(post_save, sender=Superadmin)
 def create_user_profile(sender, instance, created, **kwargs):
-    if created and instance.role == "OPERATOR":
-        OperatorProfile.objects.create(user=instance)
+    if created and instance.role == "SUPERADMIN":
+        SuperadminProfile.objects.create(user=instance)
+    else:
+        return ("error")
 
 
-class OperatorProfile(models.Model):
+class SuperadminProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    operator_id = models.IntegerField(null=True, blank=True)
-
-
-class SuperAdminManager(BaseUserManager):
-    def get_queryset(self, *args, **kwargs):
-        results = super().get_queryset(*args, **kwargs)
-        return results.filter(role=User.Role.SUPER_ADMIN)
-
-
-class Super_Admin(User):
-    base_role = User.Role.SUPER_ADMIN
-
-    super_admin = SuperAdminManager()
-
-    class Meta:
-        proxy = True
-
-    def welcome(self):
-        return "Only for super admin"
-
-
-class Super_Admin_Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    super_admin_id = models.IntegerField(null=True, blank=True)
-
-
-@receiver(post_save, sender=Super_Admin)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created and instance.role == "SUPER_ADMIN":
-        Super_Admin_Profile.objects.create(user=instance)

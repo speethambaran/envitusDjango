@@ -1,88 +1,141 @@
-from django.shortcuts import render, redirect
-from .forms import SignUpForm, LoginForm
+import pymongo
+from django.contrib import auth, messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.template import loader
-from .models import User, AbstractUser, Super_Admin, Administrator, Operator, Supervisor
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from accounts.models import User
+import json
+from django.http import JsonResponse
+
+# Create your views here.
+client = pymongo.MongoClient('mongodb://localhost:27017')
+dbname = client['accounts']
+
+hubResponse = {"status": "ok", "errorCode": 0, "message": "None"}
+errorResponse = {"status": 'error', "errorCode": -1, "message": "failed"}
 
 
+@csrf_exempt
 def index(request):
     return render(request, 'index.html')
 
 
+@csrf_exempt
 def register(request):
-    msg = None
     if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            msg = 'user created'
-            return redirect('login_view')
+        # myuser = json.loads(request.body)
+        username = request.POST['username']
+        email = request.POST['email']
+        pass1 = request.POST['pass1']
+        pass2 = request.POST['pass2']
+
+        collection = dbname["accounts_user"]
+
+        if collection.find_one({"username": request.POST["username"]}):
+            # errorResponse["message"] = 'user already exists'
+            # return JsonResponse(errorResponse, safe=False)
+            messages.info(request, "Username already taken")
+            return render(request, 'registration/register.html')
+
+        elif collection.find_one({"email": request.POST["email"]}):
+            # errorResponse["message"] = 'email already exists'
+            # return JsonResponse(errorResponse, safe=False)
+            messages.info(request, "Email already taken")
+            return render(request, 'registration/register.html')
+        elif pass1 != pass2:
+            # errorResponse["message"] = 'password not match!'
+            # return JsonResponse(errorResponse, safe=False)
+            messages.info(request, "Password not match")
+            return render(request, 'registration/register.html')
         else:
-            msg = 'form is not valid'
-    else:
-        form = SignUpForm()
-    return render(request, 'register.html', {'form': form, 'msg': msg})
+            myuser = User.objects.create_user(username=username, email=email, password=pass1)
+            myuser.save()
+            # hubResponse["message"] = 'user created successfully '
+            # return JsonResponse(hubResponse, safe=False)
+            messages.info(request, "User Created SuccessFully")
+            return render(request, 'registration/login.html')
+    # return JsonResponse(errorResponse, safe=False)
+    return render(request, 'registration/register.html')
 
 
-def login_view(request):
-    form = LoginForm(request.POST or None)
-    msg = None
+@csrf_exempt
+def login(request):
     if request.method == 'POST':
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None and user.Super_Admin:
-                login(request, user)
-                return redirect('admin')
-            elif user is not None and user.Administrator:
-                login(request, user)
-                return redirect('administrator')
-            elif user is not None and user.Supervisor:
-                login(request, user)
-                return redirect('supervisor')
-            elif user is not None and user.Operator:
-                login(request, user)
-                return redirect('operator')
-            else:
-                msg = 'invalid credentials'
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+
+        collection = dbname["accounts_user"]
+
+        if user is not None:
+            return redirect('index')
+
         else:
-            msg = 'error validating form'
-    return render(request, 'login.html', {'form': form, 'msg': msg})
+            messages.error(request, "invalid user name password !")
+            return redirect('registration/login')
+    return render(request, 'registration/login.html')
+
+@csrf_exempt
+def users(request):
+    userList = User.objects.all()
+    return render(request, 'users.html', {'users': userList})
+
+def getusers(request):
+    data = []
+    collection = dbname["accounts_user"]
+    if request.method == 'GET':
+        for x in dbname["accounts_user"].find({}, {'_id': 0}):
+            data.append(x)
+        hubResponse["data"] = data
+    return JsonResponse(hubResponse)
+
+@csrf_exempt
+def enableusers(request):
+    if request.method == 'POST':
+        myuser = json.loads(request.body)
+        collection = dbname["accounts_user"]
+        isUserExists = collection.find_one({'username': myuser['username']})
+        print(isUserExists)
+        if isUserExists:
+            collection.update_one({'username': myuser['username']}, {'$set': {'is_active': myuser['is_active']}})
+            hubResponse["message"] = 'user status has been enabled '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse['message'] = 'error please try again '
+            return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse)
+
+@csrf_exempt
+def disableusers(request):
+    if request.method == 'POST':
+        myuser = json.loads(request.body)
+        collection = dbname["accounts_user"]
+        isUserExists = collection.find_one({'username': myuser['username']})
+        print(isUserExists)
+        if isUserExists:
+            collection.update_one({'username': myuser['username']}, {'$set': {'is_active': myuser['is_active']}})
+            hubResponse["message"] = 'user status has been disabled '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse['message'] = 'error please try again '
+            return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse)
 
 
-def admin(request):
-    admindata = Super_Admin.objects.all().values()
-    template = loader.get_template('admin.html')
-    context = {
-        'username': admindata,
-    }
-    return HttpResponse(template.render(context, request))
 
+@csrf_exempt    
+def roles(request):
+    if request.method == 'POST':
+        collection = dbname["accounts_user"]
+        isUserExists = collection.find_one({'username': request.POST['username']})
+        if  isUserExists:
+            collection.update_one({'username': request.POST['username']}, {'$set': {'role': request.POST['role']}})
+            messages.info(request, "User role has been updated")
+            return render(request, 'users.html')
+        else:
+            messages.info(request, "Error Please try again ")
+            return render(request, 'roles.html')
+    return render(request, 'roles.html')
 
-def administrator(request):
-    administratordata = Administrator.objects.all().values()
-    template = loader.get_template('administrator.html')
-    context = {
-        'username': administratordata,
-    }
-    return HttpResponse(template.render(context, request))
-
-
-def supervisor(request):
-    supervisordata = Supervisor.objects.all().values()
-    template = loader.get_template('supervisor.html')
-    context = {
-        'username': supervisordata,
-    }
-    return HttpResponse(template.render(context, request))
-
-
-def operator(request):
-    operatordata = Operator.objects.all().values()
-    template = loader.get_template('operator.html')
-    context = {
-        'username': operatordata,
-    }
-    return HttpResponse(template.render(context, request))
