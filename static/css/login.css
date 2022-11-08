@@ -1,0 +1,44 @@
+/*----------login-css-----------*/
+.lt 
+{
+    padding-top: 50px;
+}
+.h1
+{
+    text-align: center;
+    padding-top: 0px;
+    margin-bottom: 0px;
+
+}
+.t1
+{
+    text-align: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+.lgregisterbtn
+{
+    color: rgb(255, 255, 255);
+    background-color: #249f38;
+    border-color: #22b729;
+    border-radius: 5px;
+    padding: 10px 50px 10px 50px;
+    border: none;
+    margin-top: 20px;
+    margin-bottom: 20px;
+
+}
+.lgregisterbtn:hover
+{
+    background-color:#30b907;
+}
+.lginput
+{
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.style
+{
+    padding-left: 30px;
+    padding-top: 5px;
+}
