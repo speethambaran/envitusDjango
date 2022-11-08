@@ -28,8 +28,7 @@ def register(request):
         # myuser = json.loads(request.body)
         username = request.POST['username']
         email = request.POST['email']
-        pass1 = request.POST['pass1']
-        pass2 = request.POST['pass2']
+        password = request.POST['password']
 
         collection = dbname["accounts_user"]
 
@@ -37,27 +36,27 @@ def register(request):
             # errorResponse["message"] = 'user already exists'
             # return JsonResponse(errorResponse, safe=False)
             messages.info(request, "Username already taken")
-            return render(request, 'registration/register.html')
+            return render(request, 'register.html')
 
         elif collection.find_one({"email": request.POST["email"]}):
             # errorResponse["message"] = 'email already exists'
             # return JsonResponse(errorResponse, safe=False)
             messages.info(request, "Email already taken")
-            return render(request, 'registration/register.html')
-        elif pass1 != pass2:
+            return render(request, 'register.html')
+        elif password != password:
             # errorResponse["message"] = 'password not match!'
             # return JsonResponse(errorResponse, safe=False)
-            messages.info(request, "Password not match")
-            return render(request, 'registration/register.html')
+            messages.info(request, "Please enter a valid Password")
+            return render(register)
         else:
-            myuser = User.objects.create_user(username=username, email=email, password=pass1)
+            myuser = User.objects.create_user(username=username, email=email, password=password)
             myuser.save()
             # hubResponse["message"] = 'user created successfully '
             # return JsonResponse(hubResponse, safe=False)
             messages.info(request, "User Created SuccessFully")
-            return render(request, 'registration/login.html')
+            return render(request, 'login.html')
     # return JsonResponse(errorResponse, safe=False)
-    return render(request, 'registration/register.html')
+    return render(request, 'register.html')
 
 
 @csrf_exempt
@@ -73,14 +72,20 @@ def login(request):
             return redirect('index')
 
         else:
-            messages.error(request, "invalid user name password !")
-            return redirect('registration/login')
-    return render(request, 'registration/login.html')
+            messages.error(request, "invalid user or name password !")
+            return redirect('login')
+    return render(request, 'login.html')
+
 
 @csrf_exempt
 def users(request):
     userList = User.objects.all()
-    return render(request, 'users.html', {'users': userList})
+    role = User.Role.choices
+    rolearr = []
+    for x in role:
+        rolearr.append(x[1])
+    return render(request, 'users.html', {'users': userList, 'roles': rolearr})
+
 
 def getusers(request):
     data = []
@@ -90,6 +95,7 @@ def getusers(request):
             data.append(x)
         hubResponse["data"] = data
     return JsonResponse(hubResponse)
+
 
 @csrf_exempt
 def enableusers(request):
@@ -107,13 +113,13 @@ def enableusers(request):
             return JsonResponse(errorResponse, safe=False)
     return JsonResponse(errorResponse)
 
+
 @csrf_exempt
 def disableusers(request):
     if request.method == 'POST':
         myuser = json.loads(request.body)
         collection = dbname["accounts_user"]
         isUserExists = collection.find_one({'username': myuser['username']})
-        print(isUserExists)
         if isUserExists:
             collection.update_one({'username': myuser['username']}, {'$set': {'is_active': myuser['is_active']}})
             hubResponse["message"] = 'user status has been disabled '
@@ -124,18 +130,40 @@ def disableusers(request):
     return JsonResponse(errorResponse)
 
 
-
-@csrf_exempt    
+@csrf_exempt
 def roles(request):
     if request.method == 'POST':
-        collection = dbname["accounts_user"]
-        isUserExists = collection.find_one({'username': request.POST['username']})
-        if  isUserExists:
-            collection.update_one({'username': request.POST['username']}, {'$set': {'role': request.POST['role']}})
-            messages.info(request, "User role has been updated")
-            return render(request, 'users.html')
-        else:
-            messages.info(request, "Error Please try again ")
-            return render(request, 'roles.html')
-    return render(request, 'roles.html')
+        user_data = json.loads(request.body)
 
+        collection = dbname["accounts_user"]
+
+        isUserExists = collection.find_one({'username': user_data['username']})
+        if isUserExists:
+            collection.update_one({'username': user_data['username']}, {'$set': {'role': user_data['role']}})
+            # messages.info(request, "User role has been updated")
+            # return render(request, 'users.html')
+            hubResponse["message"] = 'User role has been updated '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            # messages.info(request, "Error Please try again ")
+            # return render(request, 'users.html')
+            # return render(request, 'users.html')
+            errorResponse['message'] = 'error please try again '
+            return JsonResponse(errorResponse, safe=False)
+        return JsonResponse(errorResponse)
+
+
+@csrf_exempt
+def deleteuser(request):
+    if request.method == 'POST':
+        user_data = json.loads(request.body)
+
+        collection = dbname["accounts_user"]
+        isUserExists = collection.find_one({'id': user_data['id']})
+        collection.delete_one(user_data)
+        hubResponse["message"] = 'User has been deleted '
+        return JsonResponse(hubResponse, safe=False)
+    else:
+        errorResponse['message'] = 'error please try again '
+        return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse)

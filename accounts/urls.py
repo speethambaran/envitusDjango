@@ -10,10 +10,5 @@ urlpatterns = [
     path('getusers/', views.getusers, name='getusers'),
     path('enableusers/', views.enableusers, name='enableusers'),
     path('disableusers/', views.disableusers, name='disableusers'),
-
-    # path('superadmin/', views.superadmin, name='superadmin'),
-    # path('administrator/', views.administrator, name='administrator'),
-    # path('supervisor/', views.supervisor, name='supervisor'),
-    # path('operator/', views.operator, name='operator'),
-
+    path('deleteuser/', views.deleteuser, name='deleteuser'),
 ]
