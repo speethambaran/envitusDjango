@@ -6,9 +6,10 @@ urlpatterns = [
     path('login/', views.login, name='login'),
     path('register/', views.register, name='register'),
     path('users/', views.users, name='users'),
+    path('users/userprofile/<username>', views.userprofile, name='userprofile'),
     path('users/roles/', views.roles, name='roles'),
     path('getusers/', views.getusers, name='getusers'),
     path('enableusers/', views.enableusers, name='enableusers'),
     path('disableusers/', views.disableusers, name='disableusers'),
-    path('deleteuser/', views.deleteuser, name='deleteuser'),
+    path('users/deleteuser/<int:id>', views.deleteuser, name='deleteuser'),
 ]

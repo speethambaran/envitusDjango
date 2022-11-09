@@ -6,7 +6,7 @@
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Login</title>
-    <link href="static/images/infologofav.png" rel="shortcut icon">
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.ico' %}"/>
     <img alt="" class="logostyle" src="{% static 'images/envituslogo.png' %}" width="100"
          height="100">
     <link href="{% static 'css/login.css' %}" rel="stylesheet" type="text/css"/>
@@ -61,7 +61,7 @@
         </div>
     </div>
     <div class="container signin text-center">
-        <p>Create an account? <a href='#'>Register</a>.</p>
+        <p>Create an account? <a href="register">Register</a>.</p>
         <p><a href="#">Forgotten your password?</a></p>
         <div class="fa">
             <a class="fa fa-facebook" href="#"></a>

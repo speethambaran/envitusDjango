@@ -47,7 +47,7 @@ def register(request):
             # errorResponse["message"] = 'password not match!'
             # return JsonResponse(errorResponse, safe=False)
             messages.info(request, "Please enter a valid Password")
-            return render(register)
+            return render('register')
         else:
             myuser = User.objects.create_user(username=username, email=email, password=password)
             myuser.save()
@@ -97,6 +97,11 @@ def getusers(request):
     return JsonResponse(hubResponse)
 
 
+def userprofile(request, username):
+    user = User.objects.get(username=username)
+    return render(request, 'userprofile.html', {'users': user})
+
+
 @csrf_exempt
 def enableusers(request):
     if request.method == 'POST':
@@ -120,6 +125,7 @@ def disableusers(request):
         myuser = json.loads(request.body)
         collection = dbname["accounts_user"]
         isUserExists = collection.find_one({'username': myuser['username']})
+        print(isUserExists)
         if isUserExists:
             collection.update_one({'username': myuser['username']}, {'$set': {'is_active': myuser['is_active']}})
             hubResponse["message"] = 'user status has been disabled '
@@ -133,6 +139,8 @@ def disableusers(request):
 @csrf_exempt
 def roles(request):
     if request.method == 'POST':
+        print('user data : ', json.loads(request.body))
+
         user_data = json.loads(request.body)
 
         collection = dbname["accounts_user"]
@@ -154,16 +162,18 @@ def roles(request):
 
 
 @csrf_exempt
-def deleteuser(request):
-    if request.method == 'POST':
-        user_data = json.loads(request.body)
-
-        collection = dbname["accounts_user"]
-        isUserExists = collection.find_one({'id': user_data['id']})
-        collection.delete_one(user_data)
-        hubResponse["message"] = 'User has been deleted '
-        return JsonResponse(hubResponse, safe=False)
-    else:
-        errorResponse['message'] = 'error please try again '
-        return JsonResponse(errorResponse, safe=False)
-    return JsonResponse(errorResponse)
+def deleteuser(request, id):
+    user = User.objects.get(id=id)
+    user.delete()
+    return redirect('users')
+    # if request.method == 'POST':
+    #     # user_data = json.loads(request.body)
+    #
+    #     collection = dbname["accounts_user"]
+    #     isUserExists = collection.find_one({'id': request.POST['id']})
+    #     collection.delete_one(isUserExists)
+    #     # hubResponse["message"] = 'User has been deleted '
+    #     # return JsonResponse(hubResponse, safe=False)
+    #     return redirect('users')
+    # else:
+    #     return render(request, 'userprofile.html')
