@@ -102,6 +102,15 @@ def userprofile(request, username):
     return render(request, 'userprofile.html', {'users': user})
 
 
+def editprofile(request, username):
+    user = User.objects.get(username=username)
+    role = User.Role.choices
+    rolearr = []
+    for x in role:
+        rolearr.append(x[1])
+    return render(request, 'editprofile.html', {'users': user, 'roles': rolearr})
+
+
 @csrf_exempt
 def enableusers(request):
     if request.method == 'POST':
@@ -139,26 +148,22 @@ def disableusers(request):
 @csrf_exempt
 def roles(request):
     if request.method == 'POST':
-        print('user data : ', json.loads(request.body))
-
-        user_data = json.loads(request.body)
-
         collection = dbname["accounts_user"]
 
-        isUserExists = collection.find_one({'username': user_data['username']})
+        isUserExists = collection.find_one({'username': request.method['username']})
         if isUserExists:
-            collection.update_one({'username': user_data['username']}, {'$set': {'role': user_data['role']}})
-            # messages.info(request, "User role has been updated")
-            # return render(request, 'users.html')
-            hubResponse["message"] = 'User role has been updated '
-            return JsonResponse(hubResponse, safe=False)
+            collection.update_one({'username': request.method['username']}, {'$set': {'role': request.method['role']}})
+            messages.info(request, "User role has been updated")
+            return render(request, 'users.html')
+            # hubResponse["message"] = 'User role has been updated '
+            # return JsonResponse(hubResponse, safe=False)
         else:
-            # messages.info(request, "Error Please try again ")
-            # return render(request, 'users.html')
-            # return render(request, 'users.html')
-            errorResponse['message'] = 'error please try again '
-            return JsonResponse(errorResponse, safe=False)
-        return JsonResponse(errorResponse)
+            messages.info(request, "Error Please try again ")
+            return render(request, 'editprofile.html')
+            return render(request, 'editprofile.html')
+        #     errorResponse['message'] = 'error please try again '
+        #     return JsonResponse(errorResponse, safe=False)
+        # return JsonResponse(errorResponse)
 
 
 @csrf_exempt
