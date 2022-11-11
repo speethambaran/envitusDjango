@@ -50,6 +50,7 @@ def register(request):
             return render('register')
         else:
             myuser = User.objects.create_user(username=username, email=email, password=password)
+            User.name = myuser
             myuser.save()
             # hubResponse["message"] = 'user created successfully '
             # return JsonResponse(hubResponse, safe=False)
@@ -114,18 +115,21 @@ def editprofile(request, username):
 @csrf_exempt
 def enableusers(request):
     if request.method == 'POST':
-        myuser = json.loads(request.body)
+        # myuser = json.loads(request.body)
         collection = dbname["accounts_user"]
-        isUserExists = collection.find_one({'username': myuser['username']})
+        isUserExists = collection.find_one({'username': request.POST['username']})
         print(isUserExists)
         if isUserExists:
-            collection.update_one({'username': myuser['username']}, {'$set': {'is_active': myuser['is_active']}})
-            hubResponse["message"] = 'user status has been enabled '
-            return JsonResponse(hubResponse, safe=False)
+            collection.update_one({'username': request.POST['username']},
+                                  {'$set': {'is_active': request.POST['is_active']}})
+            # hubResponse["message"] = 'user status has been enabled '
+            # return JsonResponse(hubResponse, safe=False)
+            return render(request, 'users.html')
         else:
-            errorResponse['message'] = 'error please try again '
-            return JsonResponse(errorResponse, safe=False)
-    return JsonResponse(errorResponse)
+            return render(request, 'editprofile.html')
+    #         errorResponse['message'] = 'error please try again '
+    #         return JsonResponse(errorResponse, safe=False)
+    # return JsonResponse(errorResponse)
 
 
 @csrf_exempt

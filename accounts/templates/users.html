@@ -67,6 +67,7 @@
         <th scope="col">Users</th>
         <th scope="col">Name</th>
         <th scope="col">Role</th>
+        <th scope="col">Status</th>
         <th scope="col">Operation</th>
     </tr>
     </thead>
@@ -77,10 +78,11 @@
         <td>{{ user }}</td>
         <td>{{ user.get_first_name }}</td>
         <td>{{ user.role }}</td>
+        <td>{{ user.is_active }}</td>
+        <!--            <a href="#" id="button" onclick='openModal("{{user}}")' class="button">-->
+        <!--                <ion-icon name="pencil-outline"></ion-icon>-->
+        <!--            </a>-->
         <td>
-            <!--            <a href="#" id="button" onclick='openModal("{{user}}")' class="button">-->
-            <!--                <ion-icon name="pencil-outline"></ion-icon>-->
-            <!--            </a>-->
             <a href="editprofile/{{ user.username }}" class="button">
                 <ion-icon name="pencil-outline"></ion-icon>
             </a>
