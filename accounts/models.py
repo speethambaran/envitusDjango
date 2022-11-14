@@ -15,10 +15,13 @@ class User(AbstractUser):
 
     name = models.CharField(max_length=150, blank=True)
     role = models.CharField(max_length=50, choices=Role.choices)
+    first_name = None
+    last_name = None
 
     def save(self, *args, **kwargs):
         if not self.pk:
             self.role = self.base_role
+            self.name = self.name
             return super().save(*args, **kwargs)
 
 
@@ -106,3 +109,14 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 class SuperadminProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+
+class Organization(models.Model):
+    name = models.CharField(max_length=50)
+    description = models.TextField()
+    default = models.TextField()
+    users = models.TextField()
+    devices = models.TextField()
+
+    def __str__(self):
+        return self.name
