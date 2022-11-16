@@ -13,6 +13,6 @@ urlpatterns = [
     path('getusers/', views.getusers, name='getusers'),
     path('enableusers/', views.enableusers, name='enableusers'),
     path('disableusers/', views.disableusers, name='disableusers'),
-    path('users/deleteuser/<int:id>', views.deleteuser, name='deleteuser'),
+    path('users/deleteuser/', views.deleteuser, name='deleteuser'),
     path('addorganization/', views.addorganization, name='addorganization'),
 ]
