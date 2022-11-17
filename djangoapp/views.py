@@ -40,7 +40,7 @@ def addSensor(request):
             return JsonResponse(hubResponse, safe=False)
 
 
-def getSensor(request):
+def getsensor(request):
     collection = dbname['sensor_parameter']
     sensorData = []
     isQuery = False

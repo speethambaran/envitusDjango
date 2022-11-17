@@ -9,6 +9,6 @@ urlpatterns = [
     path('device/addDeviceFamily', views.addDeviceFamily, name="addDeviceFamily"),
     path('device/device_params', views.addDeviceParams, name="addDeviceParams"),
     path('sensor/add-sensor', views.addSensor, name="addSensor"),
-    path('sensor/get-sensor', views.getSensor, name="getSensor"),
+    path('sensor/getsensor', views.getsensor, name="getsensor"),
     path('device/getDeviceFamily', views.getDeviceFamily, name="getDeviceFamily"),
 ]
