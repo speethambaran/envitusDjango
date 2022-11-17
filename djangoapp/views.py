@@ -62,13 +62,27 @@ def getSensor(request):
 def adddevices(request):
     if request.method == "POST":
         response = None
-        device_data = data = json.loads(request.body)
+        device_data = json.loads(request.body)
         if device_data != None:
             response = registerDevice(device_data)
             if response == "success":
                 return JsonResponse(hubResponse, safe=False)
             else:
                 return JsonResponse(errorResponse, safe=False)
+
+
+@csrf_exempt
+def getdevice(request):
+    data = []
+    if request.method == 'GET':
+        database = dbname["djangop"]
+        try:
+            collection = dbname["devices"]
+            data = collection.find({}, {'_id': 0})
+            hubResponse["message"] = data
+            return HttpResponse(data, hubResponse)
+        except:
+            return HttpResponse(errorResponse)
 
 
 @csrf_exempt

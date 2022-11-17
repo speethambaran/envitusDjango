@@ -51,7 +51,7 @@ def register(request):
             # messages.info(request, "Please enter a valid Password")
             # return render('register')
         else:
-            myuser = User.objects.create_user(username=username, email=email, name=name,phone=phone, password=password)
+            myuser = User.objects.create_user(username=username, email=email, name=name, phone=phone, password=password)
             myuser.save()
             hubResponse["message"] = 'user created successfully '
             return JsonResponse(hubResponse, safe=False)
@@ -86,7 +86,6 @@ def login(request):
 
 
 def logout(request):
-    logout(request)
     return render(request, 'login.html')
 
 
@@ -204,20 +203,32 @@ def deleteuser(request):
 @csrf_exempt
 def addorganization(request):
     if request.method == 'POST':
-        myuser = json.loads(request.body)
-        name = myuser['name']
-        description = myuser['description']
-        default = myuser['default']
-        users = myuser['users']
-        devices = myuser['devices']
-        collection = dbname["organization"]
-        isOrganizationExists = collection.find_one({'name': myuser['name']})
-        if isOrganizationExists:
-            errorResponse["message"] = 'name already exists'
-            return JsonResponse(errorResponse, safe=False)
+        user_data = json.loads(request.body)
+        collection = dbname["accounts_organization"]
+        name = user_data['name']
+        description = user_data['description']
+        default = user_data['default']
+        users = user_data['users']
+        devices = user_data['devices']
+        isExists = collection.find_one({'name': user_data['name']})
+        if isExists:
+            errorResponse["message"] = "Ogranization already exists"
+            return JsonResponse(errorResponse)
         else:
             myuser = Organization(name=name, description=description, default=default, users=users, devices=devices)
             myuser.save()
             hubResponse["message"] = "Organization has been added"
             return JsonResponse(hubResponse, safe=False)
+    return JsonResponse(errorResponse)
+
+
+@csrf_exempt
+def getorganization(request):
+    data = []
+    if request.method == 'GET':
+        collection = dbname["accounts_organization"]
+        for x in dbname["accounts_organization"].find({}, {'_id': 0}):
+            data.append(x)
+        hubResponse["message"] = data
+        return JsonResponse(hubResponse)
     return JsonResponse(errorResponse)

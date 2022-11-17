@@ -15,4 +15,6 @@ urlpatterns = [
     path('disableusers/', views.disableusers, name='disableusers'),
     path('users/deleteuser/', views.deleteuser, name='deleteuser'),
     path('addorganization/', views.addorganization, name='addorganization'),
+    path('getorganization/', views.getorganization, name='getorganization'),
+
 ]
