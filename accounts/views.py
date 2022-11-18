@@ -196,10 +196,6 @@ def deleteuser(request):
         # return render(request, 'userprofile.html')
 
 
-# user = User.objects.get(id=id)
-# user.delete()
-# return redirect('users')
-
 @csrf_exempt
 def addorganization(request):
     if request.method == 'POST':
@@ -230,5 +226,38 @@ def getorganization(request):
         for x in dbname["accounts_organization"].find({}, {'_id': 0}):
             data.append(x)
         hubResponse["message"] = data
-        return JsonResponse(hubResponse)
+        return JsonResponse(hubResponse, hubResponse, safe=False)
+    return JsonResponse(errorResponse)
+
+
+@csrf_exempt
+def updateorganization(request):
+    if request.method == 'POST':
+        userdata = json.loads(request.body)
+        collection = dbname["accounts_organization"]
+        isOrgExists = collection.find_one({'id': userdata['id']})
+        if isOrgExists:
+            collection.update_one({'id': userdata['id']}, {'$set': {'name': userdata['name']}}, )
+            collection.update_one({'id': userdata['id']}, {'$set': {'description': userdata['description']}}, )
+            collection.update_one({'id': userdata['id']}, {'$set': {'default': userdata['default']}}, )
+            collection.update_one({'id': userdata['id']}, {'$set': {'users': userdata['users']}}, )
+            collection.update_one({'id': userdata['id']}, {'$set': {'devices': userdata['devices']}}, )
+            hubResponse["message"] = 'Organization has been updated '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse['message'] = 'error please try again '
+            return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse)
+
+
+@csrf_exempt
+def deleteorganization(request):
+    if request.method == 'POST':
+        user_data = json.loads(request.body)
+        collection = dbname["accounts_organization"]
+        isOrgExists = collection.find_one({'name': user_data['name']})
+        if isOrgExists:
+            collection.delete_one(isOrgExists)
+            hubResponse["message"] = 'Organization has been deleted '
+        return JsonResponse(hubResponse, safe=False)
     return JsonResponse(errorResponse)

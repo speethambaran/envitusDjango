@@ -59,6 +59,39 @@ def getsensor(request):
 
 
 @csrf_exempt
+def updatesensor(request):
+    if request.method == "POST":
+        sensor_data = json.loads(request.body)
+        collection = dbname['sensor_parameter']
+        isSensorExists = collection.find_one({'displayName': sensor_data['displayName']})
+        if isSensorExists:
+            collection.update_one({'displayName': sensor_data['displayName']},
+                                  {'$set': {'paramName': sensor_data['paramName']}})
+            hubResponse["message"] = 'Sensor has been Updated '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse["message"] = 'No Parameter Exist'
+            return JsonResponse(errorResponse)
+    return JsonResponse(errorResponse)
+
+
+@csrf_exempt
+def deletesensor(request):
+    if request.method == "POST":
+        sensor_data = json.loads(request.body)
+        collection = dbname['sensor_parameter']
+        isSensorExists = collection.find_one({'paramName': sensor_data['paramName']})
+        if isSensorExists:
+            collection.delete_one(isSensorExists)
+            hubResponse["message"] = 'Sensor has been Deleted '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse["message"] = "Can't DeleteSensor "
+            return JsonResponse(errorResponse)
+    return JsonResponse(errorResponse)
+
+
+@csrf_exempt
 def adddevices(request):
     if request.method == "POST":
         response = None
