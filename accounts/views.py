@@ -226,7 +226,7 @@ def getorganization(request):
         for x in dbname["accounts_organization"].find({}, {'_id': 0}):
             data.append(x)
         hubResponse["message"] = data
-        return JsonResponse(hubResponse, hubResponse, safe=False)
+        return JsonResponse(hubResponse, safe=False)
     return JsonResponse(errorResponse)
 
 

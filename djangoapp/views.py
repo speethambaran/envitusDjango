@@ -46,16 +46,13 @@ def getsensor(request):
     isQuery = False
     if request.GET:
         sensorQuery = request.GET["paramName"]
-        sensor_data = collection.find_one({"paramName": {"$regex": sensorQuery}}, {"_id": False})
+        sensor_data = collection.find_one({"paramName": {"$regex": sensorQuery}}, {"_id": 0})
         sensorData.append(sensor_data)
-
-
     else:
-        for x in collection.find({}, {'_id': False}):
+        for x in collection.find({}, {'_id': 0}):
             sensorData.append(x)
-
-    hubResponse["data"] = sensorData
-    return JsonResponse(hubResponse, safe=False)
+            hubResponse["data"] = sensorData
+        return JsonResponse(hubResponse, safe=False)
 
 
 @csrf_exempt
@@ -107,15 +104,12 @@ def adddevices(request):
 @csrf_exempt
 def getdevice(request):
     data = []
+    collection = dbname["djangop"]
     if request.method == 'GET':
-        database = dbname["djangop"]
-        try:
-            collection = dbname["devices"]
-            data = collection.find({}, {'_id': 0})
-            hubResponse["message"] = data
-            return HttpResponse(data, hubResponse)
-        except:
-            return HttpResponse(errorResponse)
+        for x in dbname["devices"].find({}, {'_id': 0}):
+            data.append(x)
+        hubResponse["message"] = data
+        return JsonResponse(hubResponse)
 
 
 @csrf_exempt
