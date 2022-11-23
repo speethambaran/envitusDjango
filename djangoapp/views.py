@@ -104,13 +104,13 @@ def adddevices(request):
 @csrf_exempt
 def getdevice(request):
     data = []
-    collection = dbname["djangop"]
     if request.method == 'GET':
+        dbname = "djangop"
+        collection = dbname["devices"]
         for x in dbname["devices"].find({}, {'_id': 0}):
             data.append(x)
         hubResponse["message"] = data
-        return JsonResponse(hubResponse)
-
+        return JsonResponse(hubResponse, safe=False)
 
 @csrf_exempt
 def addDeviceFamily(request):
@@ -161,7 +161,7 @@ def addDeviceFamily(request):
             deviceTypes = None
             for x in dbname["Sensor_Types"].find({}, {'_id': 0}):
                 data.append(x)
-        hubResponse["data"] = data
+        hubResponse["message"] = data
 
         return JsonResponse(hubResponse, safe=False)
 
@@ -177,9 +177,8 @@ def getDeviceFamily(request):
         deviceTypes = None
         for x in dbname["Sensor_Types"].find({}, {'_id': 0}):
             data.append(x)
-    hubResponse["data"] = data
-
-    return JsonResponse(hubResponse, safe=False)
+        hubResponse["message"] = data
+        return JsonResponse(hubResponse, safe=False)
 
 
 @csrf_exempt
