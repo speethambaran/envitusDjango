@@ -27,7 +27,7 @@ NEED_AQI = True
 
 
 @csrf_exempt
-def addSensor(request):
+def addsensor(request):
     if request.method == "POST":
         sensor_data = json.loads(request.body)
         isParamNameExists = False
@@ -37,6 +37,7 @@ def addSensor(request):
             return JsonResponse(errorResponse, safe=False)
         else:
             inserted_data = collection.insert_one(sensor_data)
+            hubResponse["message"] = 'Sensor Added Successfully'
             return JsonResponse(hubResponse, safe=False)
 
 
@@ -104,16 +105,28 @@ def adddevices(request):
 @csrf_exempt
 def getdevice(request):
     data = []
+    collection = dbname["djangop"]
     if request.method == 'GET':
-        dbname = "djangop"
-        collection = dbname["devices"]
         for x in dbname["devices"].find({}, {'_id': 0}):
+            del x['paramDefinitions']
             data.append(x)
         hubResponse["message"] = data
         return JsonResponse(hubResponse, safe=False)
 
+
+# @csrf_exempt
+# def getdevice(request):
+#     data = []
+#     if request.method == 'GET':
+#         dbname = "djangop"
+#         collection = dbname["devices"]
+#         for x in dbname["devices"].find({}, {'_id': 0}):
+#             data.append(x)
+#         hubResponse["message"] = data
+#         return JsonResponse(hubResponse, safe=False)
+
 @csrf_exempt
-def addDeviceFamily(request):
+def adddevicefamily(request):
     if request.method == "POST":
         data = json.loads(request.body)
         collection = dbname['Sensor_Types']
@@ -167,7 +180,7 @@ def addDeviceFamily(request):
 
 
 @csrf_exempt
-def getDeviceFamily(request):
+def getdevicefamily(request):
     data = []
     if request.GET:
         subTypeQuery = request.GET["subType"]

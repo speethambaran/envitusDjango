@@ -130,4 +130,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = "accounts.User"
 
-ALLOWED_HOSTS = ["192.46.210.81"]
+# ALLOWED_HOSTS = ["192.46.210.81:7002"]
