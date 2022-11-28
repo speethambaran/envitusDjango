@@ -136,6 +136,7 @@ def adddevicefamily(request):
         deviceFamilyModel = {
             "subType": None,
             "Type": None,
+            "description": None,
             "deviceFamily": [],
         }
         deviceFamily = []
@@ -157,8 +158,10 @@ def adddevicefamily(request):
             if isSensorExists:
                 deviceFamilyModel["subType"] = data['subType']
                 deviceFamilyModel["Type"] = data['Type']
+                deviceFamilyModel["description"] = data['description']
                 deviceFamilyModel["deviceFamily"].append(data['deviceFamily'])
                 collection.insert_one(deviceFamilyModel)
+                hubResponse["message"] = 'Device Family added Sucessfully'
                 return JsonResponse(hubResponse, safe=False)
             else:
                 errorResponse["message"] = 'No sensor existing with this name'

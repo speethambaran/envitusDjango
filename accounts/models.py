@@ -14,7 +14,7 @@ class User(AbstractUser):
     base_role = Role.OPERATOR
 
     name = models.CharField(max_length=150, null=False, blank=True)
-    phone = models.IntegerField(null=False, blank=False, unique=True)
+    phone = models.IntegerField(null=False, blank=True, unique=True)
     role = models.CharField(max_length=50, choices=Role.choices)
     first_name = None
     last_name = None
