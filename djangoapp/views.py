@@ -198,6 +198,18 @@ def getdevicefamily(request):
 
 
 @csrf_exempt
+def getlivedata(request):
+    livedata = []
+    collection = dbname["djangop"]
+    if request.method == 'GET':
+        for x in dbname["device_raw_data"].find({}, {'_id': 0}):
+            livedata.append(x)
+        hubResponse["message"] = livedata
+        return JsonResponse(hubResponse, safe=False)
+    return JsonResponse(errorResponse)
+
+
+@csrf_exempt
 def processLiveData(request):
     if request.method == "POST":
         hubResponse = {"status": "ok", "errorCode": 0, "message": "None", "data": "None"}

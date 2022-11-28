@@ -72,22 +72,28 @@ def login(request):
         collection = dbname["accounts_user"]
 
         if user is not None:
-            hubResponse["message"] = 'user logged successfully'
-            return JsonResponse(hubResponse, safe=False)
-            # return redirect('index')
-
+            data = {}
+            Response ={}
+            data['username'] = user.get_username()
+            data['role'] = user.role
+            Response["message"] = 'user logged in  successfully'
+            Response['data'] = data
+            return JsonResponse(Response, safe=False)
         else:
-            errorResponse["message"] = 'error login'
+            errorResponse["message"] = 'invalid username or password'
             return JsonResponse(errorResponse, safe=False)
-            # messages.error(request, "invalid user or name password !")
-            # return redirect('login')
-    # return render(request, 'login.html')
     return JsonResponse(errorResponse)
 
 
+@csrf_exempt
 def logout(request):
-    return render(request, 'login.html')
-
+    if request.method == 'POST':
+        logout(request)
+        hubResponse["message"] = "User Logged Out Successfully"
+        return JsonResponse(hubResponse, safe=False)
+    else:
+        errorResponse["message"] = "Error in  logout"
+        return JsonResponse(errorResponse, safe=False)
 
 @csrf_exempt
 def users(request):
@@ -175,7 +181,7 @@ def roles(request):
             # messages.info(request, "Error Please try again ")
             # return render(request, 'editprofile.html')
             # return render(request, 'editprofile.html')
-            errorResponse['message'] = 'error please try again '
+            errorResponse['message'] = 'No User Exist '
             return JsonResponse(errorResponse, safe=False)
     return JsonResponse(errorResponse)
 
@@ -245,7 +251,7 @@ def updateorganization(request):
             hubResponse["message"] = 'Organization has been updated '
             return JsonResponse(hubResponse, safe=False)
         else:
-            errorResponse['message'] = 'error please try again '
+            errorResponse['message'] = 'No Organization Exist '
             return JsonResponse(errorResponse, safe=False)
     return JsonResponse(errorResponse)
 
@@ -255,9 +261,12 @@ def deleteorganization(request):
     if request.method == 'POST':
         user_data = json.loads(request.body)
         collection = dbname["accounts_organization"]
-        isOrgExists = collection.find_one({'name': user_data['name']})
+        isOrgExists = collection.find_one({'id': user_data['id']})
         if isOrgExists:
             collection.delete_one(isOrgExists)
             hubResponse["message"] = 'Organization has been deleted '
-        return JsonResponse(hubResponse, safe=False)
-    return JsonResponse(errorResponse)
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse["message"] = 'No Organization Exist '
+            return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse ,safe=False)
