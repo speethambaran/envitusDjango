@@ -13,5 +13,6 @@ urlpatterns = [
     path('device/device_params', views.addDeviceParams, name="addDeviceParams"),
     path('getdevice', views.getdevice, name="getdevice"),
     path('livedata', views.processLiveData, name="processLiveData"),
+    path('postlivedata', views.postlivedata, name="postlivedata"),
     path('getlivedata', views.getlivedata, name="getlivedata"),
 ]
