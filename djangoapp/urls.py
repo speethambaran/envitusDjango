@@ -15,4 +15,5 @@ urlpatterns = [
     path('livedata', views.processLiveData, name="processLiveData"),
     path('postlivedata', views.postlivedata, name="postlivedata"),
     path('getlivedata', views.getlivedata, name="getlivedata"),
+    # path('dashboard', views.dashboard, name="dashboard"),
 ]

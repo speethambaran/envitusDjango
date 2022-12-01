@@ -34,7 +34,7 @@ def addsensor(request):
             hubResponse["message"] = 'Sensor Added Successfully'
             return JsonResponse(hubResponse, safe=False)
 
-
+@csrf_exempt
 def getsensor(request):
     collection = dbname['sensor_parameter']
     sensorData = []
@@ -48,6 +48,7 @@ def getsensor(request):
             sensorData.append(x)
             hubResponse["data"] = sensorData
         return JsonResponse(hubResponse, safe=False)
+    return JsonResponse(errorResponse, safe=False)
 
 
 @csrf_exempt
@@ -106,18 +107,25 @@ def getdevice(request):
             data.append(x)
         hubResponse["message"] = data
         return JsonResponse(hubResponse, safe=False)
+    return JsonResponse(errorResponse, safe=False)
 
 
 # @csrf_exempt
-# def getdevice(request):
+# def dashboard(request):
 #     data = []
+#     result = []
+#     collection = dbname["djangop"]
 #     if request.method == 'GET':
-#         dbname = "djangop"
-#         collection = dbname["devices"]
-#         for x in dbname["devices"].find({}, {'_id': 0}):
-#             data.append(x)
+#         for x in dbname["device_raw_data"].find({}, {'_id': 0}):
+#             for y in dbname["devices"].find({}, {'_id': 0}):
+#                 del y['paramDefinitions']
+#                 data.append(y)
+#                 result.append(x)
 #         hubResponse["message"] = data
+#         hubResponse["data"] = result
 #         return JsonResponse(hubResponse, safe=False)
+#     return JsonResponse(errorResponse, safe=False)
+
 
 @csrf_exempt
 def adddevicefamily(request):
@@ -194,13 +202,28 @@ def getdevicefamily(request):
 @csrf_exempt
 def getlivedata(request):
     livedata = []
-    collection = dbname["djangop"]
-    if request.method == 'GET':
-        for x in dbname["device_raw_data"].find({}, {'_id': 0}):
+    if request.GET:
+        dataQuery = request.GET["deviceId"]
+        collection = dbname[dataQuery+"_L"]
+        for x in collection.find({"deviceId": {"$regex": dataQuery}}, {"_id": 0}):
             livedata.append(x)
         hubResponse["message"] = livedata
         return JsonResponse(hubResponse, safe=False)
-    return JsonResponse(errorResponse)
+    else:
+        return JsonResponse(errorResponse, safe=False)
+
+
+# def getlivedata(request):
+#     livedata = []
+#     collection = dbname["djangop"]
+#     mycol = dbname["device_raw_data"]
+#     if request.method == 'GET':
+#         mydoc = mycol.find().sort("receivedTime", 1)
+#         for x in mycol.find({}, {'_id': 0}):
+#             livedata.append(x)
+#         hubResponse["message"] = livedata
+#         return JsonResponse(hubResponse, safe=False)
+#     return JsonResponse(errorResponse)
 
 
 @csrf_exempt
