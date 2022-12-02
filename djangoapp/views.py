@@ -3,6 +3,7 @@ import json
 import random
 import time
 import pymongo
+from bson import ObjectId
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -46,7 +47,7 @@ def getsensor(request):
     else:
         for x in collection.find({}, {'_id': 0}):
             sensorData.append(x)
-            hubResponse["data"] = sensorData
+            hubResponse["message"] = sensorData
         return JsonResponse(hubResponse, safe=False)
     return JsonResponse(errorResponse, safe=False)
 
@@ -96,6 +97,20 @@ def adddevices(request):
             else:
                 return JsonResponse(errorResponse, safe=False)
 
+# @csrf_exempt
+# def getdevice(request):
+#     devicedata = []
+#     if request.GET:
+#         deviceQuery = request.GET["deviceId"]
+#         collection = dbname['devices']
+#         data = collection.find_one({"deviceId": {"$regex": deviceQuery}}, {"_id": 0})
+#         devicedata.append(data)
+#     else:
+#         for x in dbname.find({}, {'_id': 0}):
+#             devicedata.append(x)
+#         hubResponse["data"] = devicedata
+#         return JsonResponse(hubResponse, safe=False)
+#     return JsonResponse(errorResponse, safe=False)
 
 @csrf_exempt
 def getdevice(request):
@@ -105,10 +120,41 @@ def getdevice(request):
         for x in dbname["devices"].find({}, {'_id': 0}):
             del x['paramDefinitions']
             data.append(x)
-        hubResponse["message"] = data
+            hubResponse["message"] = data
         return JsonResponse(hubResponse, safe=False)
     return JsonResponse(errorResponse, safe=False)
 
+
+@csrf_exempt
+def updatedevice(request):
+    if request.method == 'POST':
+        devicedata = json.loads(request.body)
+        collection = dbname["devices"]
+        IsSubTypeExist = dbname["Sensor_Types"].find_one({"subType": devicedata["subType"]})
+        IsDeviceExist = dbname["devices"].find_one({"_id": ObjectId(devicedata["_id"])})
+        if IsDeviceExist and IsSubTypeExist:
+            collection.update_one({"_id": ObjectId(devicedata["_id"])}, {'$set': {'subType': devicedata['subType']}}, )
+            hubResponse["message"] = 'device has been updated '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse['message'] = 'No device Exist or No SubType Exist '
+            return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse)
+
+@csrf_exempt
+def deletedevice(request):
+    if request.method == 'POST':
+        device_data = json.loads(request.body)
+        collection = dbname["devices"]
+        isDeviceExists = dbname["devices"].find_one({"_id": ObjectId(device_data["_id"])})
+        if isDeviceExists:
+            collection.delete_one(isDeviceExists)
+            hubResponse["message"] = 'Device has been deleted '
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            errorResponse["message"] = 'No Device Exist '
+            return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(errorResponse, safe=False)
 
 # @csrf_exempt
 # def dashboard(request):
@@ -186,16 +232,16 @@ def adddevicefamily(request):
 
 @csrf_exempt
 def getdevicefamily(request):
-    data = []
+    devicefamily = []
     if request.GET:
         subTypeQuery = request.GET["subType"]
         result = dbname["Sensor_Types"].find_one({"subType": {"$regex": subTypeQuery}}, {"_id": False})
-        data.append(result)
+        devicefamily.append(result)
     else:
         deviceTypes = None
         for x in dbname["Sensor_Types"].find({}, {'_id': 0}):
-            data.append(x)
-        hubResponse["message"] = data
+            devicefamily.append(x)
+            hubResponse["message"] = devicefamily
         return JsonResponse(hubResponse, safe=False)
 
 
