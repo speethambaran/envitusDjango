@@ -251,19 +251,37 @@ def getdevicefamily(request):
             hubResponse["message"] = devicefamily
         return JsonResponse(hubResponse, safe=False)
 
-
 @csrf_exempt
 def getlivedata(request):
     livedata = []
+    collection = dbname["device_raw_data"]
     if request.GET:
-        dataQuery = request.GET["deviceId"]
-        collection = dbname[dataQuery+"_L"]
-        for x in collection.find({"deviceId": {"$regex": dataQuery}}, {"_id": 0}):
-            livedata.append(x)
+        livedataQuery = request.GET["deviceId"]
+        collection = dbname[livedataQuery+"_L"]
+        data = dbname['device_raw_data'].find_one({"deviceId": {"$regex": livedataQuery}})
+        del data['_id']
+        livedata.append(data)
         hubResponse["message"] = livedata
         return JsonResponse(hubResponse, safe=False)
     else:
-        return JsonResponse(errorResponse, safe=False)
+        for x in dbname["device_raw_data"].find({}, {'_id': 0}):
+            livedata.append(x)
+            hubResponse["message"] = livedata
+        return JsonResponse(hubResponse, safe=False)
+
+#
+# @csrf_exempt
+# def getlivedata(request):
+#     livedata = []
+#     if request.GET:
+#         dataQuery = request.GET["deviceId"]
+#         collection = dbname[dataQuery+"_L"]
+#         for x in collection.find({"deviceId": {"$regex": dataQuery}}, {"_id": 0}):
+#             livedata.append(x)
+#         hubResponse["message"] = livedata
+#         return JsonResponse(hubResponse, safe=False)
+#     else:
+#         return JsonResponse(errorResponse, safe=False)
 
 
 # def getlivedata(request):
@@ -285,25 +303,69 @@ def postlivedata(request):
         received_json_data = {
                           "deviceId": "patnaenvtest",
                           "data": {
-                              "temperature": random.uniform(-10, 80),
-                              "pressure": random.uniform(540, 1100),
-                              "humidity": random.uniform(0, 90),
-                              "PM10": random.uniform(0, 450),
-                              "PM2p5": random.uniform(0, 230),
-                              "CO": random.uniform(0, 1000),
-                              "CO2": random.uniform(0, 5000),
-                              "NO2": random.uniform(0, 2000),
-                              "SO2": random.uniform(0, 20),
-                              "O3": random.uniform(0, 1000),
-                              "noise": random.uniform(30, 120),
-                              "windSpeedAvg": random.uniform(0, 60),
-                              "windDirection": random.uniform(0, 360),
-                              "rain": random.uniform(0, 999.8),
-                              "TSP": random.uniform(0, 20),
-                              "er_init_sensor": random.uniform(0, 15),
-                              "er_read_sensor": random.uniform(0, 15),
-                              "er_out_of_range": random.uniform(0, 15),
-                              "er_system": random.uniform(0, 15),
+                              "temperature": (round(random.uniform(10, 50), 2)),
+                              "pressure": (round(random.uniform(0, 100), 2)),
+                              "humidity": (round(random.uniform(0, 100), 2)),
+                              "PM10": (round(random.uniform(0, 100), 2)),
+                              "PM2p5": (round(random.uniform(0, 100), 2)),
+                              "CO": (round(random.uniform(0, 100), 2)),
+                              "CO2": (round(random.uniform(0, 100), 2)),
+                              "NO2": (round(random.uniform(0, 100), 2)),
+                              "SO2": (round(random.uniform(0, 100), 2)),
+                              "O3": (round(random.uniform(0, 100), 2)),
+                              "noise": (round(random.uniform(0, 100), 2)),
+                              "windSpeedAvg": (round(random.uniform(0, 100), 2)),
+                              "windDirection": (round(random.uniform(0, 100), 2)),
+                              "rain": (round(random.uniform(0, 100), 2)),
+                              "TSP": (round(random.uniform(0, 100), 2)),
+                              "er_init_sensor": (round(random.uniform(0, 100), 2)),
+                              "er_read_sensor": (round(random.uniform(0, 100), 2)),
+                              "er_out_of_range": (round(random.uniform(0, 100), 2)),
+                              "er_system": (round(random.uniform(0, 100), 2)),
+                          }
+        }
+        dataOfRequest = {}
+        processed_data = None
+        if received_json_data != None:
+            data = received_json_data["data"]
+            data["time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            data["status"] = "ready"
+        if PROJECT_TYPE == "AQMS":
+            processed_data = getAqmsConversion(data)
+            aqi = updateStatusAQI(data["time"], received_json_data["deviceId"])
+
+        result = pushSensorData(received_json_data["deviceId"], processed_data)
+        processIncomingData()
+        if result == "success":
+            return JsonResponse(hubResponse, safe=False)
+        else:
+            return JsonResponse(errorResponse, safe=False)
+
+@csrf_exempt
+def postdevicelivedata(request):
+    if request.method == "POST":
+        received_json_data = {
+                          "deviceId": "patnaenvtest1",
+                          "data": {
+                              "temperature": (round(random.uniform(10, 50), 2)),
+                              "pressure": (round(random.uniform(0, 100), 2)),
+                              "humidity": (round(random.uniform(0, 100), 2)),
+                              "PM10": (round(random.uniform(0, 100), 2)),
+                              "PM2p5": (round(random.uniform(0, 100), 2)),
+                              "CO": (round(random.uniform(0, 100), 2)),
+                              "CO2": (round(random.uniform(0, 100), 2)),
+                              "NO2": (round(random.uniform(0, 100), 2)),
+                              "SO2": (round(random.uniform(0, 100), 2)),
+                              "O3": (round(random.uniform(0, 100), 2)),
+                              "noise": (round(random.uniform(0, 100), 2)),
+                              "windSpeedAvg": (round(random.uniform(0, 100), 2)),
+                              "windDirection": (round(random.uniform(0, 100), 2)),
+                              "rain": (round(random.uniform(0, 100), 2)),
+                              "TSP": (round(random.uniform(0, 100), 2)),
+                              "er_init_sensor": (round(random.uniform(0, 100), 2)),
+                              "er_read_sensor": (round(random.uniform(0, 100), 2)),
+                              "er_out_of_range": (round(random.uniform(0, 100), 2)),
+                              "er_system": (round(random.uniform(0, 100), 2)),
                           }
         }
         dataOfRequest = {}
@@ -523,16 +585,16 @@ def ProcessSensorData(currentData):
 
 
 def getAqmsConversion(data):
-    if data.get("NO2") != None:
-        data["NO2"] = (data["NO2"] * 0.0409 * 46.01) * 1000
-    if data.get("S02") != None:
-        data["SO2"] = (data["SO2"] * 0.0409 * 64.06) * 1000
-    if data.get("O3") != None:
-        data["NO2"] = (data["O3"] * 0.0409 * 48) * 1000
-    if data.get("CO") != None:
-        data["CO"] = (data["CO"] * 0.0409 * 28.01)
-    if data.get("NH3") != None:
-        data["NH3"] = (data["NH3"] * 0.0409 * 17.031) * 1000
+    # if data.get("NO2") != None:
+    #     data["NO2"] = (data["NO2"] * 0.0409 * 46.01) * 1000
+    # if data.get("S02") != None:
+    #     data["SO2"] = (data["SO2"] * 0.0409 * 64.06) * 1000
+    # if data.get("NO2") != None:
+    #     data["NO2"] = (data["NO2)"] * 0.0409 * 48) * 1000
+    # if data.get("CO") != None:
+    #     data["CO"] = (data["CO"] * 0.0409 * 28.01)
+    # if data.get("NH3") != None:
+    #     data["NH3"] = (data["NH3"] * 0.0409 * 17.031) * 1000
 
     currentdate = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data["receivedTime"] = int(time.time())
