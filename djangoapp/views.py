@@ -2,6 +2,7 @@ import datetime
 import json
 import random
 import time
+import moment as moment
 import pymongo
 from bson import ObjectId
 from django.http import HttpResponse
@@ -34,6 +35,7 @@ def addsensor(request):
             inserted_data = collection.insert_one(sensor_data)
             hubResponse["message"] = 'Sensor Added Successfully'
             return JsonResponse(hubResponse, safe=False)
+
 
 @csrf_exempt
 def getsensor(request):
@@ -97,6 +99,7 @@ def adddevices(request):
             else:
                 return JsonResponse(errorResponse, safe=False)
 
+
 # @csrf_exempt
 # def getdevice(request):
 #     devicedata = []
@@ -148,6 +151,7 @@ def updatedevice(request):
             return JsonResponse(errorResponse, safe=False)
     return JsonResponse(errorResponse)
 
+
 @csrf_exempt
 def deletedevice(request):
     if request.method == 'POST':
@@ -163,21 +167,83 @@ def deletedevice(request):
             return JsonResponse(errorResponse, safe=False)
     return JsonResponse(errorResponse, safe=False)
 
-# @csrf_exempt
-# def dashboard(request):
-#     data = []
-#     result = []
-#     collection = dbname["djangop"]
-#     if request.method == 'GET':
-#         for x in dbname["device_raw_data"].find({}, {'_id': 0}):
-#             for y in dbname["devices"].find({}, {'_id': 0}):
-#                 del y['paramDefinitions']
-#                 data.append(y)
-#                 result.append(x)
-#         hubResponse["message"] = data
-#         hubResponse["data"] = result
-#         return JsonResponse(hubResponse, safe=False)
-#     return JsonResponse(errorResponse, safe=False)
+
+@csrf_exempt
+def dashboardStatistics(request,deviceId):
+    response = {
+        'aqi': -1,
+        'pollutants': {
+            'display': {
+                'PM2p5': True,
+                'PM10': True,
+                'CO': True,
+                'NO2': True,
+                'SO2': True,
+                'O3': True
+            }
+        },
+        'weather': {},
+        'device_details': {}
+    }
+    print('device id : ', deviceId)
+    deviceExist = dbname["devices"].find_one({'deviceId': deviceId})
+    response = {}
+    if deviceExist:
+        deviceLastData = getDeviceLastHourAQI(deviceId)
+        if deviceLastData != None:
+            dashboardData = deviceLastData.data
+            response["aqi"] = deviceLastData.aqi
+            response["pollutants"]["PM2p5"] = dashboardData["PM2p5"]
+            response["pollutants"]["PM10"] = dashboardData["PM10"]
+            response["pollutants"]["CO"] = dashboardData["CO"]
+            response["pollutants"]["NO2"] = dashboardData["NO2"]
+            response["pollutants"]["SO2"] = dashboardData["SO2"]
+            response["pollutants"]["O3"] = dashboardData["O3"]
+            response["pollutants"]["prominentPollutant"] = dashboardData["prominentPollutant"]
+            response["weather"] = {
+                "temperature": dashboardData["temperature"],
+                "humidity": dashboardData["humidity"],
+                "UV": dashboardData["UV"],
+                'rain': dashboardData["rain"]
+            }
+        response["device_details"] = {
+            "_id": deviceExist["deviceId"],
+            "city":deviceExist["location"]["city"],
+            "landMark":deviceExist["location"]["landMark"],
+            # "lastDataReceiveTime":deviceExist["dateTime"]
+        }
+        hubResponse["message"] = response
+        return JsonResponse(hubResponse, safe=False)
+    else:
+        return JsonResponse(errorResponse, safe=False)
+    return JsonResponse(response)
+
+
+@csrf_exempt
+def getDeviceLastHourAQI(deviceId):
+    print('device id : ', deviceId)
+
+    collection = dbname["aqi"]
+
+    deviceQuery = {
+
+        'deviceId': deviceId,
+
+        'dateTime': {'$gte': moment.now().replace(hours=4, minutes=0, seconds=0).epoch(rounding=False)}
+
+    }
+
+    data = collection.find_one(deviceQuery)
+
+    if data:
+
+        data.sort('createdAt', -1)
+
+        return data
+
+    else:
+
+        return None
 
 
 @csrf_exempt
@@ -251,13 +317,14 @@ def getdevicefamily(request):
             hubResponse["message"] = devicefamily
         return JsonResponse(hubResponse, safe=False)
 
+
 @csrf_exempt
 def getlivedata(request):
     livedata = []
     collection = dbname["device_raw_data"]
     if request.GET:
         livedataQuery = request.GET["deviceId"]
-        collection = dbname[livedataQuery+"_L"]
+        collection = dbname[livedataQuery + "_L"]
         data = dbname['device_raw_data'].find_one({"deviceId": {"$regex": livedataQuery}})
         del data['_id']
         livedata.append(data)
@@ -268,6 +335,7 @@ def getlivedata(request):
             livedata.append(x)
             hubResponse["message"] = livedata
         return JsonResponse(hubResponse, safe=False)
+
 
 #
 # @csrf_exempt
@@ -301,28 +369,28 @@ def getlivedata(request):
 def postlivedata(request):
     if request.method == "POST":
         received_json_data = {
-                          "deviceId": "patnaenvtest",
-                          "data": {
-                              "temperature": (round(random.uniform(10, 50), 2)),
-                              "pressure": (round(random.uniform(0, 100), 2)),
-                              "humidity": (round(random.uniform(0, 100), 2)),
-                              "PM10": (round(random.uniform(0, 100), 2)),
-                              "PM2p5": (round(random.uniform(0, 100), 2)),
-                              "CO": (round(random.uniform(0, 100), 2)),
-                              "CO2": (round(random.uniform(0, 100), 2)),
-                              "NO2": (round(random.uniform(0, 100), 2)),
-                              "SO2": (round(random.uniform(0, 100), 2)),
-                              "O3": (round(random.uniform(0, 100), 2)),
-                              "noise": (round(random.uniform(0, 100), 2)),
-                              "windSpeedAvg": (round(random.uniform(0, 100), 2)),
-                              "windDirection": (round(random.uniform(0, 100), 2)),
-                              "rain": (round(random.uniform(0, 100), 2)),
-                              "TSP": (round(random.uniform(0, 100), 2)),
-                              "er_init_sensor": (round(random.uniform(0, 100), 2)),
-                              "er_read_sensor": (round(random.uniform(0, 100), 2)),
-                              "er_out_of_range": (round(random.uniform(0, 100), 2)),
-                              "er_system": (round(random.uniform(0, 100), 2)),
-                          }
+            "deviceId": "patnaenvtest",
+            "data": {
+                "temperature": (round(random.uniform(10, 50), 2)),
+                "pressure": (round(random.uniform(0, 100), 2)),
+                "humidity": (round(random.uniform(0, 100), 2)),
+                "PM10": (round(random.uniform(0, 100), 2)),
+                "PM2p5": (round(random.uniform(0, 100), 2)),
+                "CO": (round(random.uniform(0, 100), 2)),
+                "CO2": (round(random.uniform(0, 100), 2)),
+                "NO2": (round(random.uniform(0, 100), 2)),
+                "SO2": (round(random.uniform(0, 100), 2)),
+                "O3": (round(random.uniform(0, 100), 2)),
+                "noise": (round(random.uniform(0, 100), 2)),
+                "windSpeedAvg": (round(random.uniform(0, 100), 2)),
+                "windDirection": (round(random.uniform(0, 100), 2)),
+                "rain": (round(random.uniform(0, 100), 2)),
+                "TSP": (round(random.uniform(0, 100), 2)),
+                "er_init_sensor": (round(random.uniform(0, 100), 2)),
+                "er_read_sensor": (round(random.uniform(0, 100), 2)),
+                "er_out_of_range": (round(random.uniform(0, 100), 2)),
+                "er_system": (round(random.uniform(0, 100), 2)),
+            }
         }
         dataOfRequest = {}
         processed_data = None
@@ -340,33 +408,34 @@ def postlivedata(request):
             return JsonResponse(hubResponse, safe=False)
         else:
             return JsonResponse(errorResponse, safe=False)
+
 
 @csrf_exempt
 def postdevicelivedata(request):
     if request.method == "POST":
         received_json_data = {
-                          "deviceId": "patnaenvtest1",
-                          "data": {
-                              "temperature": (round(random.uniform(10, 50), 2)),
-                              "pressure": (round(random.uniform(0, 100), 2)),
-                              "humidity": (round(random.uniform(0, 100), 2)),
-                              "PM10": (round(random.uniform(0, 100), 2)),
-                              "PM2p5": (round(random.uniform(0, 100), 2)),
-                              "CO": (round(random.uniform(0, 100), 2)),
-                              "CO2": (round(random.uniform(0, 100), 2)),
-                              "NO2": (round(random.uniform(0, 100), 2)),
-                              "SO2": (round(random.uniform(0, 100), 2)),
-                              "O3": (round(random.uniform(0, 100), 2)),
-                              "noise": (round(random.uniform(0, 100), 2)),
-                              "windSpeedAvg": (round(random.uniform(0, 100), 2)),
-                              "windDirection": (round(random.uniform(0, 100), 2)),
-                              "rain": (round(random.uniform(0, 100), 2)),
-                              "TSP": (round(random.uniform(0, 100), 2)),
-                              "er_init_sensor": (round(random.uniform(0, 100), 2)),
-                              "er_read_sensor": (round(random.uniform(0, 100), 2)),
-                              "er_out_of_range": (round(random.uniform(0, 100), 2)),
-                              "er_system": (round(random.uniform(0, 100), 2)),
-                          }
+            "deviceId": "patnaenvtest1",
+            "data": {
+                "temperature": (round(random.uniform(10, 50), 2)),
+                "pressure": (round(random.uniform(0, 100), 2)),
+                "humidity": (round(random.uniform(0, 100), 2)),
+                "PM10": (round(random.uniform(0, 100), 2)),
+                "PM2p5": (round(random.uniform(0, 100), 2)),
+                "CO": (round(random.uniform(0, 100), 2)),
+                "CO2": (round(random.uniform(0, 100), 2)),
+                "NO2": (round(random.uniform(0, 100), 2)),
+                "SO2": (round(random.uniform(0, 100), 2)),
+                "O3": (round(random.uniform(0, 100), 2)),
+                "noise": (round(random.uniform(0, 100), 2)),
+                "windSpeedAvg": (round(random.uniform(0, 100), 2)),
+                "windDirection": (round(random.uniform(0, 100), 2)),
+                "rain": (round(random.uniform(0, 100), 2)),
+                "TSP": (round(random.uniform(0, 100), 2)),
+                "er_init_sensor": (round(random.uniform(0, 100), 2)),
+                "er_read_sensor": (round(random.uniform(0, 100), 2)),
+                "er_out_of_range": (round(random.uniform(0, 100), 2)),
+                "er_system": (round(random.uniform(0, 100), 2)),
+            }
         }
         dataOfRequest = {}
         processed_data = None
@@ -384,6 +453,7 @@ def postdevicelivedata(request):
             return JsonResponse(hubResponse, safe=False)
         else:
             return JsonResponse(errorResponse, safe=False)
+
 
 @csrf_exempt
 def processLiveData(request):

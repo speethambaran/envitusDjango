@@ -18,5 +18,5 @@ urlpatterns = [
     path('postlivedata', views.postlivedata, name="postlivedata"),
     path('postdevicelivedata', views.postdevicelivedata, name="postdevicelivedata"),
     path('getlivedata', views.getlivedata, name="getlivedata"),
-    # path('dashboard', views.dashboard, name="dashboard"),
+    path('statistics/<str:deviceId>', views.dashboardStatistics, name="dashboardStatistics"),
 ]
