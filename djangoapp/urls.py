@@ -19,4 +19,5 @@ urlpatterns = [
     path('postdevicelivedata', views.postdevicelivedata, name="postdevicelivedata"),
     path('getlivedata', views.getlivedata, name="getlivedata"),
     path('statistics/<str:deviceId>', views.dashboardStatistics, name="dashboardStatistics"),
+    path('device/sensor/stats', views.fetchSensorData, name="fetchSensorData"),
 ]

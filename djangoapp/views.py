@@ -169,7 +169,7 @@ def deletedevice(request):
 
 
 @csrf_exempt
-def dashboardStatistics(request,deviceId):
+def dashboardStatistics(request, deviceId):
     response = {
         'aqi': -1,
         'pollutants': {
@@ -208,8 +208,8 @@ def dashboardStatistics(request,deviceId):
             }
         response["device_details"] = {
             "_id": deviceExist["deviceId"],
-            "city":deviceExist["location"]["city"],
-            "landMark":deviceExist["location"]["landMark"],
+            "city": deviceExist["location"]["city"],
+            "landMark": deviceExist["location"]["landMark"],
             # "lastDataReceiveTime":deviceExist["dateTime"]
         }
         hubResponse["message"] = response
@@ -219,10 +219,147 @@ def dashboardStatistics(request,deviceId):
     return JsonResponse(response)
 
 
+def fetchSensorData(request):
+    if request.GET != None and request.GET["deviceIds"] != None and request.GET["timeFrame"] != None:
+
+        options = request.GET["timeFrame"].split(',')
+
+        timeStart = None
+
+        timeEnd = None
+
+        if request.GET["timeStart"] != None:
+            timeStart = request.GET["timeStart"]
+
+        if request.GET["timeEnd"] != None:
+            timeEnd = request.GET["timeEnd"]
+
+        listDevIds = request.GET["deviceIds"].split(',')
+
+        paramList = None
+
+        if request.GET["params"] != None:
+            paramList = request.GET["params"].split(',')
+
+        listResult = []
+
+        lastDevId = listDevIds[len(listDevIds) - 1]
+
+        i = 0
+
+        numberOfRecords = 100
+
+        offset = 0
+
+        value = getSensorStats(listDevIds[i], paramList, timeStart, timeEnd, includeDailyStatus(options),
+                               numberOfRecords, offset)
+
+        resultPerDevice = {
+
+            'deviceId': listDevIds[i],
+
+            'stat': value
+
+        }
+
+        listResult.append(resultPerDevice)
+
+        i += 1
+
+        if i >= len(listDevIds):
+            hubResponse['data'] = {'statPerDeviceId': listResult}
+
+        return JsonResponse(hubResponse, safe=False)
+
+
+
+    else:
+        return JsonResponse(hubResponse, safe=False)
+
+
+def getSensorStats(deviceId, paramList, timeFrom, timeTo, includeDaily, numberOfRecords, offset):
+    result = {}
+
+    funcs = []
+
+    funcsStatTimePeriodArg = []
+
+    if includeDaily:
+        funcs.append(getSensorStatsInfo(deviceId, paramList, timeFrom, timeTo, numberOfRecords, offset, 'daily'))
+
+        funcsStatTimePeriodArg.append("_daily")
+
+    i = 0
+
+    if len(funcs) > 0:
+
+        if funcsStatTimePeriodArg[i] == "_daily":
+            result["dailyStat"] = funcs
+
+    i += 1
+
+    return result
+
+
+def getSensorStatsInfo(deviceId, paramList, timeFrom, timeTo, limit, offset, dbSuffix):
+    device = dbname["devices"].find_one({'deviceId': deviceId})
+
+    if device != None:
+        collectionName = getStatCollectionPrefixFromDeviceLogicalId(device["logicalDeviceId"]) + '_' + dbSuffix
+
+        response = getStatParam(collectionName, paramList, timeFrom, timeTo, limit, offset)
+
+        return response
+
+
+def getStatParam(collectionName, paramNameList, timeFrom, timeTo, limit, offset):
+    timeMax = None
+
+    timeMin = None
+
+    if limit < 20 and limit > 14:
+        limit = 20
+
+    statQuery = {
+
+        "paramName": {'$in': paramNameList}
+
+    }
+
+    response = GetFilteredDocumentSorted(collectionName, statQuery, {"_id": False, "epoch": False}, {"epoch": -1},
+                                         limit, offset)
+
+    if response:
+
+        return response
+
+    else:
+
+        return None
+
+
+def includeHourlyStats(optionList):
+    return optionList.index('hourly') >= 0
+
+
+def includeDailyStatus(optionList):
+    return optionList.index('daily') >= 0
+
+
+def includeMonthlyStatus(optionList):
+    return optionList.index('monthly') >= 0
+
+
+def includeYearlyStatus(optionList):
+    return optionList.index('yearly') >= 0
+
+
+def getStatCollectionPrefixFromDeviceLogicalId(logicalId):
+    return logicalId + "_stat"
+
+
 @csrf_exempt
 def getDeviceLastHourAQI(deviceId):
-    print('device id : ', deviceId)
-
     collection = dbname["aqi"]
 
     deviceQuery = {
@@ -325,9 +462,10 @@ def getlivedata(request):
     if request.GET:
         livedataQuery = request.GET["deviceId"]
         collection = dbname[livedataQuery + "_L"]
-        data = dbname['device_raw_data'].find_one({"deviceId": {"$regex": livedataQuery}})
-        del data['_id']
-        livedata.append(data)
+        data = dbname['device_raw_data'].find({"deviceId": {"$regex": livedataQuery}}).limit(10)
+        for x in data:
+            del x['_id']
+            livedata.append(x)
         hubResponse["message"] = livedata
         return JsonResponse(hubResponse, safe=False)
     else:
@@ -335,34 +473,6 @@ def getlivedata(request):
             livedata.append(x)
             hubResponse["message"] = livedata
         return JsonResponse(hubResponse, safe=False)
-
-
-#
-# @csrf_exempt
-# def getlivedata(request):
-#     livedata = []
-#     if request.GET:
-#         dataQuery = request.GET["deviceId"]
-#         collection = dbname[dataQuery+"_L"]
-#         for x in collection.find({"deviceId": {"$regex": dataQuery}}, {"_id": 0}):
-#             livedata.append(x)
-#         hubResponse["message"] = livedata
-#         return JsonResponse(hubResponse, safe=False)
-#     else:
-#         return JsonResponse(errorResponse, safe=False)
-
-
-# def getlivedata(request):
-#     livedata = []
-#     collection = dbname["djangop"]
-#     mycol = dbname["device_raw_data"]
-#     if request.method == 'GET':
-#         mydoc = mycol.find().sort("receivedTime", 1)
-#         for x in mycol.find({}, {'_id': 0}):
-#             livedata.append(x)
-#         hubResponse["message"] = livedata
-#         return JsonResponse(hubResponse, safe=False)
-#     return JsonResponse(errorResponse)
 
 
 @csrf_exempt
@@ -729,15 +839,25 @@ def getStatParamHourly(collection_name, paramNameList, time_from, time_to, limit
 
 def GetFilteredDocumentSorted(collectionName, query, excludFields, sortOptions, limitRecords, skipRecords):
     collection = dbname[collectionName]
+
     options = {}
 
     if sortOptions != None:
+
         options["sort"] = sortOptions
+
     else:
+
         options["sort"] = {"_id": -1}
 
     result = collection.find_one(query, excludFields)
-    return result
+
+    check = collection.find()
+
+    testArr = []
+
+    for x in collection.find():
+        del x["_id"]
 
 
 def findAQIFromLiveData(currentData):
